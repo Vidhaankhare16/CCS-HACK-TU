@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 import io
 
-
 app = FastAPI()
 #joblib_in = open()
 model = tf.keras.models.load_model('model.keras')
@@ -47,20 +46,16 @@ def predict_crack_type():
 
 @app.post("/upload/")
 async def upload_image(file: UploadFile = File(...)):
-    # Read and process image
-    image = Image.open(io.BytesIO(await file.read()))
-    image = image.convert("L")  # Example: Convert to grayscale
-    def predict_crack(image_path):
-        img = tf.keras.preprocessing.image.load_img(
-            image_path, target_size=(300, 300)
-        )
+    def predict_crack(image_bytes):
+        img = Image.open(io.BytesIO(image_bytes))
+        img = img.resize((300, 300))  # Resize to match model input shape
         img_array = tf.keras.preprocessing.image.img_to_array(img)
         img_array = tf.expand_dims(img_array, 0) / 255.0
         prediction = model.predict(img_array)
         return "Crack Detected" if prediction[0][0] > 0.5 else "No Crack Found"
-    text = predict_crack(image)
-    #data = data.model_dump()
-    #Image = Image
+    image_bytes = await file.read()
+    result = predict_crack(image_bytes)
+    return {"filename": file.filename, "prediction": result}
 
     #prediction = model.predict([Image])
     #return {
